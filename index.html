@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Which laptop? A simple laptop finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --ink:#14202e; --muted:#51607a; --line:#d5dbe7;
+  --accent:#2f4bff; --accent-ink:#ffffff; --good:#0d8a6a; --mark:#dfe5ff;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1520; --surface:#182030; --ink:#e8edf7; --muted:#9aa8c2; --line:#2a3550;
+    --accent:#7d92ff; --accent-ink:#0f1520; --good:#4cd1ac; --mark:#243066;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "IBM Plex Sans",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;line-height:1.1;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+header{padding:56px 0 28px}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em;max-width:14ch}
+.sentence{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(1.3rem,3.4vw,1.9rem);font-weight:500;line-height:1.9;margin:28px 0 0}
+select{font:inherit;font-weight:700;color:var(--accent);background:var(--mark);border:0;border-bottom:3px solid var(--accent);border-radius:6px 6px 0 0;padding:2px 28px 2px 10px;cursor:pointer;max-width:100%}
+select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hint{color:var(--muted);font-size:.95rem;margin:10px 0 0}
+#results{display:grid;gap:16px;margin:12px 0 48px}
+.pick{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 24px}
+.pick:first-child{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pick h3{font-size:1.4rem;font-weight:700}
+.kind{color:var(--good);font-weight:500;font-size:.95rem;margin:4px 0 10px}
+.pick p{margin:0 0 12px;max-width:62ch}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.95rem}
+dt{color:var(--muted)} dd{margin:0}
+.best{display:inline-block;background:var(--accent);color:var(--accent-ink);font-size:.85rem;font-weight:500;padding:1px 10px;border-radius:99px;margin-bottom:10px}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:22px;color:var(--muted)}
+section.guide{border-top:1px solid var(--line);padding:40px 0}
+section.guide h2{font-size:1.8rem;font-weight:700;margin-bottom:18px}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+.checks h3{font-size:1.1rem;margin-bottom:6px}
+.checks p{margin:0;color:var(--muted);font-size:.97rem}
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);font-size:.9rem}
+@media (max-width:520px){dl{grid-template-columns:1fr}dt{margin-top:6px}}
+.ask{border-top:1px solid var(--line);padding:40px 0}
+.ask h2{font-size:1.8rem;font-weight:700;margin-bottom:6px}
+.ask p.sub{color:var(--muted);margin:0 0 16px}
+.askrow{display:flex;gap:10px;flex-wrap:wrap}
+.askrow input{flex:1 1 260px;font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.askrow button{font:inherit;font-weight:500;padding:12px 20px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.askrow button:disabled{opacity:.6;cursor:wait}
+#answer{margin-top:16px;white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;max-width:70ch}
+#answer:empty{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Find the right laptop without the spec-sheet headache</h1>
+  <p class="sentence">
+    I mostly need a laptop for
+    <select id="use" aria-label="What you will use it for">
+      <option value="study">study and browsing</option>
+      <option value="code">coding</option>
+      <option value="game">gaming</option>
+      <option value="create">video and design</option>
+      <option value="work">office work</option>
+    </select>
+    and my budget is
+    <select id="budget" aria-label="Your budget">
+      <option value="1">under ₹40,000</option>
+      <option value="2" selected>₹40,000–₹70,000</option>
+      <option value="3">₹70,000–₹1,20,000</option>
+      <option value="4">above ₹1,20,000</option>
+    </select>
+  </p>
+  <p class="hint">Suggestions update as you change either choice.</p>
+</header>
+
+<main>
+  <div id="results" aria-live="polite"></div>
+
+  <section class="ask">
+    <h2>Ask Claude about laptops</h2>
+    <p class="sub">Describe what you need and get a quick suggestion.</p>
+    <div class="askrow">
+      <input id="q" type="text" maxlength="500" placeholder="Best laptop for coding under ₹60,000?" aria-label="Your question">
+      <button id="askBtn" type="button">Ask Claude</button>
+    </div>
+    <div id="answer" aria-live="polite"></div>
+  </section>
+
+  <section class="guide">
+    <h2>Five things to check before you buy</h2>
+    <div class="checks">
+      <div><h3>RAM: 16 GB if you can</h3><p>8 GB works for light use, but 16 GB keeps a laptop usable for years. Check whether it can be upgraded later.</p></div>
+      <div><h3>Storage: SSD, 512 GB</h3><p>Avoid hard disks. A 512 GB SSD gives room for apps and files without constant cleanup.</p></div>
+      <div><h3>Screen: Full HD IPS</h3><p>Look for 1920×1080 and good brightness (300 nits or more). Dim, washed-out panels tire your eyes.</p></div>
+      <div><h3>Battery and weight</h3><p>If you carry it daily, aim for under 1.8 kg and real-world battery of 6+ hours. Read independent reviews, not just claims.</p></div>
+      <div><h3>Service and warranty</h3><p>Check that the brand has a service centre in your city and whether accidental-damage cover is available.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  These are model families, not exact listings. Specs and prices change often, so compare current prices on Amazon, Flipkart and brand stores, and read recent reviews before buying.
+</footer>
+</div>
+
+<script>
+const PICKS = [
+  {n:"Lenovo IdeaPad Slim 3 or HP 15 series", k:"Everyday all-rounder", b:[1,2], u:["study","work"],
+   w:"Reliable, light on the wallet and good enough for classes, documents, video calls and streaming.",
+   s:{"Processor":"Ryzen 5 or Core i3/i5","Memory":"8 GB minimum, 16 GB better","Storage":"512 GB SSD","Screen":"15.6″ Full HD"}},
+  {n:"ASUS Vivobook or Acer Aspire series", k:"Value for money", b:[1,2], u:["study","code","work"],
+   w:"Often packs more RAM and storage into the price. A good starting point for students and beginner programmers.",
+   s:{"Processor":"Ryzen 5 / Core i5","Memory":"16 GB if available","Storage":"512 GB SSD","Screen":"Full HD IPS"}},
+  {n:"Refurbished ThinkPad or Dell Latitude", k:"Stretch a small budget", b:[1], u:["code","work","study"],
+   w:"Business-class build and keyboards at low prices. Buy only from sellers that offer a warranty and return window.",
+   s:{"Processor":"Core i5 (8th gen or newer)","Memory":"16 GB","Storage":"256–512 GB SSD","Check":"Battery health and warranty"}},
+  {n:"Dell Inspiron or Lenovo IdeaPad Slim 5", k:"Step-up everyday laptop", b:[2,3], u:["study","code","work"],
+   w:"Better screens, metal-ish builds and stronger processors than entry models, still sensible on price.",
+   s:{"Processor":"Ryzen 5/7 or Core i5/i7","Memory":"16 GB","Storage":"512 GB–1 TB SSD","Screen":"Full HD+ IPS"}},
+  {n:"Lenovo ThinkPad E or L series", k:"Typing and durability", b:[2,3], u:["code","work"],
+   w:"Famous keyboards, solid service network and dependable build. A great pick for long work or coding sessions.",
+   s:{"Processor":"Ryzen 5/7 or Core i5/i7","Memory":"16 GB","Storage":"512 GB SSD","Extra":"Good port selection"}},
+  {n:"Lenovo LOQ, HP Victus or ASUS TUF", k:"Entry gaming", b:[2,3], u:["game","create"],
+   w:"Dedicated graphics at a fair price. Good for popular esports titles and light editing.",
+   s:{"Graphics":"RTX 4050-class or newer","Processor":"Ryzen 5 / Core i5 (H series)","Memory":"16 GB","Screen":"144 Hz or higher"}},
+  {n:"ASUS Zenbook or HP Pavilion Plus (OLED)", k:"Thin, bright screen", b:[3], u:["create","work","study"],
+   w:"Sharp OLED displays and slim bodies. Nice for photo work, presentations and travel.",
+   s:{"Processor":"Core Ultra 5/7 or Ryzen 7","Memory":"16 GB (often soldered)","Storage":"512 GB–1 TB SSD","Screen":"OLED, 2.5K"}},
+  {n:"Apple MacBook Air (M-series)", k:"Battery and simplicity", b:[3,4], u:["study","code","work","create"],
+   w:"Silent, light and very long battery life. Excellent for coding, writing and light video editing. Not ideal for most PC games.",
+   s:{"Memory":"Prefer 16 GB, it can’t be upgraded","Storage":"256 GB is tight, aim for 512 GB","Screen":"13″ or 15″ Retina","Weight":"About 1.2–1.5 kg"}},
+  {n:"Lenovo Legion, ASUS ROG or MSI gaming laptops", k:"Serious gaming", b:[4,3], u:["game","create"],
+   w:"Stronger cooling and faster graphics for AAA games, 3D work and heavy video rendering.",
+   s:{"Graphics":"RTX 4060–4070 class or better","Processor":"Core i7 / Ryzen 7 (HX or H)","Memory":"16–32 GB","Screen":"QHD, 165 Hz+"}},
+  {n:"Apple MacBook Pro or ASUS ProArt / Creator laptops", k:"Professional creative work", b:[4], u:["create","code"],
+   w:"Color-accurate screens and strong sustained performance for editing, design, 3D and large code builds.",
+   s:{"Memory":"32 GB for heavy projects","Storage":"1 TB SSD","Screen":"Color-accurate, 100% P3 or DCI-P3","Extra":"Great speakers and webcam"}}
+];
+const BUDGET_LABEL={1:"under ₹40,000",2:"₹40,000–₹70,000",3:"₹70,000–₹1,20,000",4:"above ₹1,20,000"};
+const USE_LABEL={study:"study and browsing",code:"coding",game:"gaming",create:"video and design",work:"office work"};
+const useEl=document.getElementById("use"), budEl=document.getElementById("budget"), out=document.getElementById("results");
+
+function render(){
+  const u=useEl.value, b=+budEl.value;
+  let list=PICKS.filter(p=>p.u.includes(u)&&p.b.includes(b));
+  if(list.length<2){ // widen to neighbouring budgets
+    const extra=PICKS.filter(p=>p.u.includes(u)&&!list.includes(p)&&p.b.some(x=>Math.abs(x-b)===1));
+    list=list.concat(extra);
+  }
+  list=list.slice(0,3);
+  if(!list.length){
+    out.innerHTML='<div class="empty">No strong match for this combination. Try a different budget, or choose a more general use like office work.</div>';
+    return;
+  }
+  const note = list.some(p=>!p.b.includes(b)) ? `<div class="empty">Few options fit exactly ${BUDGET_LABEL[b]} for ${USE_LABEL[u]}. Some picks below are from a nearby budget.</div>` : "";
+  out.innerHTML = note + list.map((p,i)=>{
+    const rows=Object.entries(p.s).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+    return `<article class="pick">${i===0?'<span class="best">Best fit</span>':''}<h3>${p.n}</h3><div class="kind">${p.k}</div><p>${p.w}</p><dl>${rows}</dl></article>`;
+  }).join("");
+}
+useEl.addEventListener("change",render);
+budEl.addEventListener("change",render);
+render();
+
+const qEl=document.getElementById("q"), btn=document.getElementById("askBtn"), ans=document.getElementById("answer");
+async function ask(){
+  const question=qEl.value.trim();
+  if(!question) return;
+  btn.disabled=true; ans.textContent="Thinking…";
+  try{
+    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question})});
+    const d=await r.json();
+    ans.textContent=d.answer;
+  }catch(e){ ans.textContent="Could not reach the server. Please try again."; }
+  btn.disabled=false;
+}
+btn.addEventListener("click",ask);
+qEl.addEventListener("keydown",e=>{ if(e.key==="Enter") ask(); });
+</script>
+</body>
+</html>
